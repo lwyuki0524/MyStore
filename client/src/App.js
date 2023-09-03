@@ -1,35 +1,34 @@
-import React ,{useEffect, useState} from 'react'
+import React from 'react';
+import { ChakraProvider, } from '@chakra-ui/react';
+import Home from './views/home';
+import SignUp from './views/signUp';
+import Login from './views/login';
+import { BrowserRouter as Router, Route, Routes, } from 'react-router-dom';
+import UserInfo from './views/userInfo';
 
+// 導入客製化Button
+import {extendTheme} from '@chakra-ui/react'
+import { buttonTheme } from './components/buttonTheme';
+
+const theme = extendTheme({
+    components: {
+      Button: buttonTheme,
+    }
+  });
 
 function App() {
-  
-  const [backendData, setBackendData] = useState([{}])
 
-  useEffect( ()=>{
-    fetch("/api/user/index").then(
-      response => response.json()
-    ).then(
-      data => {
-        setBackendData(data)
-      }
-    )
-  }, [])
-  
   return (
-    <div>
-      { 
-        backendData.map((user, i)=>(
-          <>
-            <p>{user.username}</p>
-            <p>{user.address}</p>
-            <p>{user.password}</p>
-            <p>{user.email}</p>
-            <p>{user.phone}</p>
-          </>
-        ))
-        
-      }
-    </div>
+    <ChakraProvider theme={theme}>
+      <Router>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/signup" element={<SignUp />}/>
+          <Route path="/login" element={<Login/>}/>
+          <Route path="/userInfo" element={<UserInfo/>}  />
+        </Routes>
+      </Router>
+    </ChakraProvider>
   );
 }
 
