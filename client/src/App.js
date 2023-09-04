@@ -5,6 +5,7 @@ import SignUp from './views/signUp';
 import Login from './views/login';
 import { BrowserRouter as Router, Route, Routes, } from 'react-router-dom';
 import UserInfo from './views/userInfo';
+import MemberCenter from './views/memberCenter';
 
 // 導入客製化Button
 import {extendTheme} from '@chakra-ui/react'
@@ -26,6 +27,7 @@ function App() {
           <Route path="/signup" element={<SignUp />}/>
           <Route path="/login" element={<Login/>}/>
           <Route path="/userInfo" element={<UserInfo/>}  />
+          <Route path='/memberCenter' element={<MemberCenter/>}/>
         </Routes>
       </Router>
     </ChakraProvider>

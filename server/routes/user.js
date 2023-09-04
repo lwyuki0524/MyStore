@@ -8,8 +8,10 @@ router.get('/',(req,res)=>{
 })
 
 router.get('/index', UserController.index)
+router.post('/show', UserController.show)
 router.post('/save', UserController.store)
 router.post('/update', UserController.update)
 router.post('/delete', UserController.destory)
+router.post('/login', UserController.login)
 
 module.exports = router

@@ -1,13 +1,17 @@
 import {Box,Flex,Text,IconButton,Button,Stack,Collapse,Icon,Popover,
     PopoverTrigger,PopoverContent,useColorModeValue,useBreakpointValue,useDisclosure,} from '@chakra-ui/react'
 import {HamburgerIcon,CloseIcon,ChevronDownIcon,ChevronRightIcon,} from '@chakra-ui/icons'
-
 import { useNavigate, useLocation } from 'react-router-dom'
+import {getCookie, deleteAllCookies} from '../util/utils';
 
 export default function Nav() {
+  // 取得cookie
+  const userID = getCookie('userID');
+
   const { isOpen, onToggle } = useDisclosure()
-  const location = useLocation();
-  const navigate = useNavigate();
+  const location = useLocation(); // 取得目前路徑
+  const navigate = useNavigate(); // 導航至其他頁面
+  // 點擊註冊按鈕，導航到註冊頁面
   const handleRegisterClick = () => {
     if (location.pathname==='/login'){
       navigate('/signup', { replace: true });
@@ -16,6 +20,7 @@ export default function Nav() {
       navigate('/signup');
     }
   };
+  // 點擊登入按紐，導航到登入頁面
   const handleLoginClick = () => {
     if (location.pathname==='/signup'){
       navigate('/login', { replace: true });
@@ -24,6 +29,12 @@ export default function Nav() {
       navigate('/login');
     }
   };
+
+  // 點擊登出按鈕，清除cookie，並導航到首頁
+  const handleLogoutClick =() => {
+    deleteAllCookies();
+    navigate('/', { replace: true });
+  }
   
   return (
     <Box>
@@ -63,27 +74,40 @@ export default function Nav() {
           </Flex>
         </Flex>
 
-        <Stack
-          flex={{ base: 1, md: 0 }}
-          justify={'flex-end'}
-          direction={'row'}
-          spacing={6}>
-          <Button as={'a'} fontSize={'sm'} fontWeight={400} variant={'link'} onClick={handleLoginClick} >
-            Login
-          </Button>
-            <Button
-              onClick={handleRegisterClick}
-              as={'a'}
-              fontSize={'sm'}
-              fontWeight={600}
-              color={'white'}
-              bg={'pink.400'}
-              _hover={{
-                bg: 'pink.300',
-              }}>
-              Sign Up
+        <div>
+        { 
+        // 若cookie取得了userID，顯示登出按紐；否則顯示登入和註冊按紐。 
+        userID ? (
+          <Box>
+            <Button as={'a'} fontSize={'sm'} fontWeight={400} variant={'link'} onClick={handleLogoutClick} >
+              Logout
             </Button>
-        </Stack>
+          </Box>
+          ):(
+            <Stack
+              flex={{ base: 1, md: 0 }}
+              justify={'flex-end'}
+              direction={'row'}
+              spacing={6}>
+              <Button as={'a'} fontSize={'sm'} fontWeight={400} variant={'link'} onClick={handleLoginClick} >
+                Login
+              </Button>
+                <Button
+                  onClick={handleRegisterClick}
+                  as={'a'}
+                  fontSize={'sm'}
+                  fontWeight={600}
+                  color={'white'}
+                  bg={'pink.400'}
+                  _hover={{
+                    bg: 'pink.300',
+                  }}>
+                  Sign Up
+                </Button>
+            </Stack>
+          )
+        }
+        </div>
       </Flex>
 
       <Collapse in={isOpen} animateOpacity>
@@ -255,7 +279,7 @@ const NAV_ITEMS = [
     href: '#',
   },
   {
-    label: '品牌故事',
-    href: '#',
+    label: '用戶中心',
+    href: '/memberCenter',
   },
 ]

@@ -9,12 +9,14 @@ const store = async(req, res) => {
         password: req.body.password,
         email: req.body.email,
         phone: req.body.phone,
-        address: req.body.address
+        address: req.body.address,
     })
 
     // 儲存此User到mongoDB
     try{
         const result = await user.save()
+        // 設置cookie
+        res.cookie('userID', user._id.toString());
         res.json(result)
     }
     catch(error){
@@ -36,7 +38,7 @@ const index = async(req, res) => {
 // 查詢一個用戶資料
 const show = async(req, res) => {
     // 從客戶端得到userID
-    let userID = res.body.userID
+    let userID = req.body.userID
     try{
         // 透過userID得到用戶資料
         const userdata = await User.findById(userID)
@@ -55,7 +57,7 @@ const update = async(req, res) => {
         password: req.body.password,
         email: req.body.email,
         phone: req.body.phone,
-        address: req.body.address
+        address: req.body.address,
     }
     try{
         const result = await User.findByIdAndUpdate(userID, {$set:updateData})
@@ -82,5 +84,24 @@ const destory = async(req, res) => {
     }
 }
 
+// 登入
+const login = async(req, res) => {
+    let {email, password}= req.body
+    try{
+        const user  = await User.findOne({ email, password });
+        if (user) {
+            // 設置cookie
+            res.cookie('userID', user._id.toString());
+            // 用户存在，可以登录
+            res.status(200).json({ message: 'Login successful', user });
+          } else {
+            // 用户不存在，登录失败
+            res.status(401).json({ message: 'Login failed' });
+          }
+    }
+    catch(error){
+        res.send(`Some error occured => ${error}`)
+    }
+}
 
-module.exports = {store, index, update, destory}
+module.exports = {store, show, index, update, destory, login}
