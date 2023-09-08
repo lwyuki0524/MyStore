@@ -275,11 +275,11 @@ const NAV_ITEMS = [
     ],
   },
   {
-    label: '客服中心',
-    href: '#',
-  },
-  {
     label: '用戶中心',
     href: '/memberCenter',
+  },
+  {
+    label: '管理後台',
+    href: '#',
   },
 ]

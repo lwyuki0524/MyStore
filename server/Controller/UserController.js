@@ -1,8 +1,20 @@
 const User = require("../models/User")
+const CryptoJS = require('crypto-js'); // 引入 CryptoJS
 
 // 新增
 const store = async(req, res) => {
     console.log(req.body)
+
+    try{
+        const existingUser = await User.findOne({ email: req.body.email });
+        if (existingUser) {
+            return res.status(400).json({ message: '該電子郵件地址已被使用。' });
+        }
+    }
+    catch(error){
+        res.send(`Some error occured => ${error}`)
+    }
+
     // 使用req來創建新的User實例
     let user = new User({
         username: req.body.username,
@@ -20,7 +32,7 @@ const store = async(req, res) => {
         res.json(result)
     }
     catch(error){
-        res.send(`Some error occured => ${error}`)
+        res.status(500).json({ message: `發生錯誤 => ${error}` });
     }    
 }
 
@@ -52,6 +64,20 @@ const show = async(req, res) => {
 // 修改
 const update = async(req, res) => {
     let userID = req.body.userID
+    try{
+        // 目前使用者的資料
+        const currentUser = await User.findById( userID )
+        // 已存在的信箱
+        const existingUser = await User.findOne({ email: req.body.email });
+        // 如果已存在信箱，且此信箱不是目前用戶的信箱。表示有其他用戶使用了，不能更新。
+        if (existingUser && currentUser.email!=existingUser.email ) {
+            return res.status(400).json({ message: '該電子郵件地址已被使用。' });
+        }
+    }
+    catch(error){
+        res.send(`Some error occured => ${error}`)
+    }
+
     let updateData = {
         username: req.body.username,
         password: req.body.password,
@@ -86,18 +112,29 @@ const destory = async(req, res) => {
 
 // 登入
 const login = async(req, res) => {
-    let {email, password}= req.body
+
     try{
-        const user  = await User.findOne({ email, password });
-        if (user) {
-            // 設置cookie
-            res.cookie('userID', user._id.toString());
-            // 用户存在，可以登录
-            res.status(200).json({ message: 'Login successful', user });
-          } else {
-            // 用户不存在，登录失败
+        const user  = await User.findOne({ email: req.body.email });
+        
+        if (user){
+            const secretKey = process.env.SECRETKEY;
+            const iv = CryptoJS.enc.Utf8.parse(process.env.IV);
+            const decrypted_pwd = CryptoJS.AES.decrypt( user.password , secretKey, {iv}).toString(CryptoJS.enc.Utf8);
+            if (decrypted_pwd==req.body.password) {
+                // 設置cookie
+                res.cookie('userID', user._id.toString());
+                // 用戶存在，可以登入
+                res.status(200).json({ message: 'Login successful', user });
+              } else {
+                // 密碼錯誤，登入失敗
+                res.status(401).json({ message: 'Login failed' });
+              }
+        }
+        else {
+            // 用戶不存在，拒絕登入
             res.status(401).json({ message: 'Login failed' });
-          }
+        }
+        
     }
     catch(error){
         res.send(`Some error occured => ${error}`)

@@ -3,6 +3,8 @@ node_modules/
 server/.env
 
 # client
+client/.env
+
 # dependencies
 client/node_modules
 client/.pnp

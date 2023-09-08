@@ -4,12 +4,12 @@ import { useState, useEffect } from 'react'
 import { ViewIcon, ViewOffIcon } from '@chakra-ui/icons'
 import Nav from '../components/nav'
 import { useNavigate } from 'react-router-dom'
-import {getCookie} from '../util/utils'
+import {getCookie, encrypt} from '../util/utils'
 
 export default function SignUp() {
   // 表單相關
   const [showPassword, setShowPassword] = useState(false) // 是否顯示密碼的狀態設置
-  const [formData, setFormData] = useState({ username: '', password: '' }); // 表單資料狀態
+  const [formData, setFormData] = useState({ username: '', email: '', phone:'' , address:'', password: '' }); // 表單資料狀態
   const [signUpStatus, setSignUpStatus] = useState(null); //  註冊狀態
 
   // 註冊訊息提醒
@@ -40,6 +40,14 @@ export default function SignUp() {
                 isClosable: true,
               })
             setSignUpStatus(true);
+        }
+        else if(response.status === 400){
+          toast({
+            title: '該電子郵件地址已被使用。',
+            status: 'error',
+            isClosable: true,
+          })
+          setSignUpStatus(false);
         }
         else{
             toast({
@@ -95,7 +103,7 @@ export default function SignUp() {
           <Stack spacing={4}>
             <Box>
             <FormControl id="username">
-                <FormLabel>User Name</FormLabel>
+                <FormLabel>姓名</FormLabel>
                 <Input type="text" onChange={(e) => setFormData({ ...formData, username: e.target.value })} />
             </FormControl>
             </Box>
@@ -104,17 +112,17 @@ export default function SignUp() {
               <Input type="email" onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
             </FormControl>
             <FormControl id="phone" isRequired>
-              <FormLabel>phone</FormLabel>
+              <FormLabel>電話</FormLabel>
               <Input type="tel" onChange={(e) => setFormData({ ...formData, phone: e.target.value })} />
             </FormControl>
             <FormControl id="address" isRequired>
-              <FormLabel>Address</FormLabel>
+              <FormLabel>地址</FormLabel>
               <Input type="text" onChange={(e) => setFormData({ ...formData, address: e.target.value })} />
             </FormControl>
             <FormControl id="password" isRequired>
-              <FormLabel>Password</FormLabel>
+              <FormLabel>密碼</FormLabel>
               <InputGroup>
-                <Input type={showPassword ? 'text' : 'password'} onChange={(e) => setFormData({ ...formData, password: e.target.value })} />
+                <Input type={showPassword ? 'text' : 'password'} onChange={(e) => setFormData({ ...formData, password: encrypt(e.target.value) })} />
                 <InputRightElement h={'full'}>
                   <Button
                     variant={'ghost'}
@@ -135,12 +143,12 @@ export default function SignUp() {
                 }}
                 onClick={handleSignUp}
                 >
-                Sign up
+                註冊
               </Button>
             </Stack>
             <Stack pt={6}>
               <Text align={'center'}>
-                Already a user? <Link color={'blue.400'} onClick={handleLoginClick}>Login</Link>
+                已有帳號? <Link color={'blue.400'} onClick={handleLoginClick}>登入</Link>
               </Text>
             </Stack>
           </Stack>

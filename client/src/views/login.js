@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { ViewIcon, ViewOffIcon } from '@chakra-ui/icons'
 import Nav from '../components/nav'
 import { useNavigate } from 'react-router-dom'
-import {getCookie} from '../util/utils';
+import { getCookie } from '../util/utils';
 
 export default function Login() {
   // 表單相關
@@ -92,11 +92,11 @@ export default function Login() {
           p={8}>
           <Stack spacing={4}>
             <FormControl id="email" isRequired>
-              <FormLabel>Email address</FormLabel>
+              <FormLabel>Email</FormLabel>
               <Input type="email" onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
             </FormControl>
             <FormControl id="password" isRequired>
-              <FormLabel>Password</FormLabel>
+              <FormLabel>密碼</FormLabel>
               <InputGroup>
                 <Input type={showPassword ? 'text' : 'password'} onChange={(e) => setFormData({ ...formData, password: e.target.value })} />
                 <InputRightElement h={'full'}>
@@ -118,12 +118,12 @@ export default function Login() {
                   bg: 'blue.500',
                 }}
                 onClick={handleLogin} >
-                Login
+                登入
               </Button>
             </Stack>
             <Stack pt={6}>
               <Text align={'center'}>
-                Create a new user? <Link color={'blue.400'} onClick={handleRegisterClick} >Sign Up</Link>
+                建立新帳號? <Link color={'blue.400'} onClick={handleRegisterClick} >註冊</Link>
               </Text>
             </Stack>
           </Stack>

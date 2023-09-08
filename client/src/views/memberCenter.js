@@ -1,9 +1,12 @@
 import React ,{useEffect, useState} from 'react'
-import {getCookie, deleteAllCookies} from '../util/utils';
+import {getCookie, deleteAllCookies, encrypt, decrypt} from '../util/utils';
 import Nav from '../components/nav';
-import { Card, CardBody, CardFooter, Box, Text, Input, Stack, useToast, Button, useDisclosure,
-     AlertDialog, AlertDialogOverlay, AlertDialogContent, AlertDialogHeader, AlertDialogBody, AlertDialogFooter  } from '@chakra-ui/react';
+import { Card, CardBody, CardFooter, Box, Text, Input, InputGroup, InputRightElement, Stack, useToast, Button, useDisclosure, 
+			AlertDialog, AlertDialogOverlay, AlertDialogContent, AlertDialogHeader, AlertDialogBody, AlertDialogFooter, 
+			Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton,
+			FormControl, FormLabel  } from '@chakra-ui/react';
 import { useNavigate } from 'react-router-dom';
+import { ViewIcon, ViewOffIcon } from '@chakra-ui/icons';
 
 export default function MemberCenter() {
     const navigate = useNavigate();
@@ -58,46 +61,24 @@ export default function MemberCenter() {
                         <CardBody align="center">
                           <Stack  p="10px" direction="row" align="center">
                             <Stack align="center">
-                                <Box p="10px" h="45px">Username:</Box>
-                                <Box p="10px" h="45px">Password: </Box>
-                                <Box p="10px" h="45px">Phone: </Box>
-                                <Box p="10px" h="45px">Address:</Box>
+                                <Box p="10px" h="45px">姓名:</Box>
                                 <Box p="10px" h="45px">Email: </Box>
+                                <Box p="10px" h="45px">密碼: </Box>
+                                <Box p="10px" h="45px">電話: </Box>
+                                <Box p="10px" h="45px">地址:</Box>
                             </Stack>
                             <Stack>
-                              <Input value={userData.username} h="45px" maxW="100%" isReadOnly="true"/>
-                              <Input value={userData.password} h="45px" maxW="100%" isReadOnly="true"/>
-                              <Input value={userData.phone} h="45px" maxW="100%" isReadOnly="true"/>
-                              <Input value={userData.address} h="45px" maxW="100%" isReadOnly="true"/> 
-                              <Input value={userData.email} h="45px" maxW="100%" isReadOnly="true"/>
+                              <Input value={userData.username} h="45px" maxW="100%" isReadOnly={true}/>
+                              <Input value={userData.email} h="45px" maxW="100%" isReadOnly={true}/>
+                              <Input value={decrypt(userData.password)} h="45px" maxW="100%" isReadOnly={true}/>
+                              <Input value={userData.phone} h="45px" maxW="100%" isReadOnly={true}/>
+                              <Input value={userData.address} h="45px" maxW="100%" isReadOnly={true}/> 
                             </Stack>
                           </Stack>
                         </CardBody>
 
                         <CardFooter align='center'>
-                            <Button 
-                                bg='gray.200' 
-                                fontWeight="semibold" 
-                                color='black' 
-                                borderRadius='5'
-                                mr='10px'
-                                _hover={{
-                                    transform: "scale(1.05, 1.05)",
-                                    bg: `gray.300`,
-                                    _dark: {
-                                        bg: `gray.300`,
-                                    },
-                                }}
-                                _active={{
-                                    bg: `gray.500`,
-                                    transform: "scale(1, 1)",
-                            
-                                    _dark: {
-                                    bg: `gray.400`,
-                                    }
-                                }}>
-                                    編輯帳戶資料
-                            </Button>
+														<EditUserInfo userData = {userData} />
                             <AlertDialogModel/>
                         </CardFooter>
                     </Card>
@@ -111,7 +92,168 @@ export default function MemberCenter() {
     )
 }
 
+// 編輯視窗
+function EditUserInfo({userData}){
+	const { isOpen, onOpen, onClose } = useDisclosure()
+	// 編輯訊息
+	const toast = useToast();
 
+	// 預設值
+	const initialFormData = {
+		username: userData.username, 
+		email: userData.email, 
+		phone: userData.phone , 
+		address: userData.address, 
+		password: decrypt(userData.password)
+	}
+
+	// 表單相關
+	const [formData, setFormData] = useState( initialFormData ); // 表單資料狀態
+	const [showPassword, setShowPassword] = useState(false) // 是否顯示密碼的狀態設置
+
+	// 處理輸入字段變化的函數 
+	const handleFormChange = (event) => {
+    const { name, value } = event.target;
+    setFormData((prevData) => ({
+      ...prevData,
+      [name]: value, // 使用computed property name來更新對應字段
+    }));
+  };
+
+	// 取消編輯
+	const handleCancel = () =>{
+		setFormData(initialFormData);
+		onClose();
+	}
+
+	// 送出表單進行密碼加密處理
+	const handleSubmit = async(event) => {
+    event.preventDefault(); // 阻止表單的默認提交行為，因為要加密密碼，所以要避免頁面重新加載或導航到新的頁面
+    // 在此處進行密碼加密
+    const encryptedPassword = encrypt( formData.password ).toString();
+
+    // 將加密後的密碼發送到後端或執行其他操作
+		// 取得userID
+		const userID = getCookie('userID');
+		// 發起異步請求註冊用戶
+    try {
+			const response = await fetch('/api/user/update', {
+					method: 'POST',
+					body: JSON.stringify({userID:userID, ...formData, password:encryptedPassword}),
+					headers:{
+							'Content-Type': 'application/json',
+					},
+			});
+
+			if (response.ok){
+					toast({
+							title: '修改成功',
+							status: 'success',
+							isClosable: true,
+						})
+					onClose();
+			}
+			else if(response.status === 400){
+				toast({
+					title: '該電子郵件地址已被使用。',
+					status: 'error',
+					isClosable: true,
+				})
+			}
+			else{
+					toast({
+							title: '修改失敗。請再試一次!',
+							status: 'error',
+							isClosable: true,
+						})
+					onClose();
+			}
+		}
+		catch(error){
+				toast({
+						title: '修改失敗',
+						status: 'error',
+						isClosable: true,
+					})
+				onClose();
+				console.error('用戶修改錯誤:', error);
+		}
+  };
+
+	const initialRef = React.useRef(null)
+	const finalRef = React.useRef(null)
+
+	return (
+		<>
+		<Button 
+			bg='gray.200' fontWeight="semibold"  color='black'  borderRadius='5' mr='10px'
+			_hover={{
+				transform: "scale(1.05, 1.05)", bg: `gray.300`,
+				_dark: { bg: `gray.300`, },
+			}}
+			_active={{
+				bg: `gray.500`, transform: "scale(1, 1)",
+				_dark: {bg: `gray.400`,}
+			}} onClick={onOpen}>
+				編輯帳戶資料
+		</Button>
+
+		<Modal
+        initialFocusRef={initialRef}
+        finalFocusRef={finalRef}
+        isOpen={isOpen}
+        onClose={onClose}
+      >
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>修改資料</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody pb={6}>
+            <FormControl id='username'>
+              <FormLabel>姓名</FormLabel>
+              <Input type="text" name="username" value={formData.username} onChange={handleFormChange} ref={initialRef} placeholder='輸入姓名...' />
+            </FormControl>
+						<FormControl id='Email' mt={4}>
+              <FormLabel>Email</FormLabel>
+              <Input type="text" name="email" value={formData.email} onChange={handleFormChange} placeholder='輸入Email...' />
+            </FormControl>
+            <FormControl id='password' mt={4}>
+              <FormLabel>密碼</FormLabel>
+							<InputGroup>
+								<Input type={showPassword ? 'text' : 'password'} 
+									name="password" value={formData.password} onChange={handleFormChange} placeholder='輸入新密碼...' />
+                <InputRightElement h={'full'}>
+                  <Button
+                    variant={'ghost'}
+                    onClick={() => setShowPassword((showPassword) => !showPassword)}>
+                    {showPassword ? <ViewIcon /> : <ViewOffIcon />}
+                  </Button>
+                </InputRightElement>
+              </InputGroup>
+              
+            </FormControl>
+						<FormControl id='phone' mt={4}>
+              <FormLabel>電話</FormLabel>
+              <Input type="tel"  name="phone" value={formData.phone} onChange={handleFormChange} placeholder='輸入電話...' />
+            </FormControl>
+						<FormControl id='address' mt={4}>
+              <FormLabel>地址</FormLabel>
+              <Input type="text" name="address" value={formData.address} onChange={handleFormChange} placeholder='輸入地址...' />
+            </FormControl>
+          </ModalBody>
+
+          <ModalFooter>
+            <Button onClick={handleSubmit} colorScheme='blue' mr={3}>
+              儲存
+            </Button>
+            <Button onClick={handleCancel}>取消</Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+		</>
+	)
+}
 
 // 警告視窗
 function AlertDialogModel() {
@@ -186,7 +328,7 @@ function AlertDialogModel() {
                   取消
                 </Button>
                 <Button borderRadius='5' colorScheme='red' onClick={handleDeleteUser} ml={3}>
-                  刪除
+                  確認刪除
                 </Button>
               </AlertDialogFooter>
             </AlertDialogContent>
