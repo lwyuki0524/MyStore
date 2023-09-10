@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import { ViewIcon, ViewOffIcon } from '@chakra-ui/icons';
 
 export default function MemberCenter() {
+    const [showPassword, setShowPassword] = useState(false) // 是否顯示密碼的狀態設置
     const navigate = useNavigate();
     const [userData, setUserData] = useState(null);
     
@@ -54,7 +55,7 @@ export default function MemberCenter() {
         <div>
             <Nav />
             <Box m ='5%'>
-                <Text align ='center'>用戶中心</Text>
+                <Text align ='center'>會員中心</Text>
                 {userData ? (
                     
                     <Card align="center">
@@ -70,7 +71,17 @@ export default function MemberCenter() {
                             <Stack>
                               <Input value={userData.username} h="45px" maxW="100%" isReadOnly={true}/>
                               <Input value={userData.email} h="45px" maxW="100%" isReadOnly={true}/>
-                              <Input value={decrypt(userData.password)} h="45px" maxW="100%" isReadOnly={true}/>
+                              <InputGroup>
+                                <Input type={showPassword ? 'text' : 'password'} 
+                                value={decrypt(userData.password)} h="45px" maxW="100%" isReadOnly={true}/>
+                                <InputRightElement h={'full'}>
+                                  <Button
+                                    variant={'ghost'}
+                                    onClick={() => setShowPassword((showPassword) => !showPassword)}>
+                                    {showPassword ? <ViewIcon /> : <ViewOffIcon />}
+                                  </Button>
+                                </InputRightElement>
+                              </InputGroup>
                               <Input value={userData.phone} h="45px" maxW="100%" isReadOnly={true}/>
                               <Input value={userData.address} h="45px" maxW="100%" isReadOnly={true}/> 
                             </Stack>
@@ -110,14 +121,49 @@ function EditUserInfo({userData}){
 	// 表單相關
 	const [formData, setFormData] = useState( initialFormData ); // 表單資料狀態
 	const [showPassword, setShowPassword] = useState(false) // 是否顯示密碼的狀態設置
+  const [errors, setErrors] = useState({}); // 格式錯誤狀態
 
-	// 處理輸入字段變化的函數 
-	const handleFormChange = (event) => {
+  /* 檢查用戶輸入格式 */
+  // 使用正則表達式來檢查格式
+  const validatePhone = (phone) => { return /^\d{10}$/.test(phone); }
+  const validateEmail = (email) => { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email); }
+  const validatePassword = (password) => {
+    return /^(?=.*[!@#$%^&*])(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,}$/.test(password);
+  } // 密碼至少需要6個字符，包括一個特殊符號、一個大寫字母、一個小寫字母
+
+  const handleInputChange = (event) => {
     const { name, value } = event.target;
-    setFormData((prevData) => ({
-      ...prevData,
-      [name]: value, // 使用computed property name來更新對應字段
-    }));
+    const newFormData = { ...formData };
+    let newErrors = { ...errors };
+    if (name === 'username') {
+      if(value){ delete newErrors.username; }
+      else{ newErrors.username = '必填'; }
+    }
+    if (name === 'phone') {
+      if (!validatePhone(value)) { newErrors.phone = '電話必須是10個數字'; } 
+      else { delete newErrors.phone; }
+    }
+    if (name === 'email') {
+      if (!validateEmail(value)) { newErrors.email = 'Email格式不正確'; }
+      else { delete newErrors.email; }
+    }
+    if (name === 'address') {
+      if(value){ delete newErrors.address; }
+      else{ newErrors.address = '必填'; }
+    }
+    if (name === 'password') {
+      if (!validatePassword(value)) { newErrors.password = '密碼必須至少包含一個特殊符號、一個大寫字母、一個小寫字母，且至少6個字符'; }
+      else { delete newErrors.password; }
+    }
+    newFormData[name] = value;
+    setFormData(newFormData);
+    setErrors(newErrors);
+  }
+  // 設定錯誤訊息樣式
+  const errorStyle = {
+    color: 'red',
+    fontSize:'7px',
+    padding: '2px',
   };
 
 	// 取消編輯
@@ -129,55 +175,75 @@ function EditUserInfo({userData}){
 	// 送出表單進行密碼加密處理
 	const handleSubmit = async(event) => {
     event.preventDefault(); // 阻止表單的默認提交行為，因為要加密密碼，所以要避免頁面重新加載或導航到新的頁面
-    // 在此處進行密碼加密
-    const encryptedPassword = encrypt( formData.password ).toString();
 
-    // 將加密後的密碼發送到後端或執行其他操作
-		// 取得userID
-		const userID = getCookie('userID');
-		// 發起異步請求註冊用戶
-    try {
-			const response = await fetch('/api/user/update', {
-					method: 'POST',
-					body: JSON.stringify({userID:userID, ...formData, password:encryptedPassword}),
-					headers:{
-							'Content-Type': 'application/json',
-					},
-			});
+    // 檢查必填字段是否為空
+    const requiredFields = ['username', 'email', 'phone', 'address', 'password'];
+    let newErrors = { ...errors };
+    for (const field of requiredFields) {
+      if (!formData[field]) { newErrors[field] = '此字段為必填項'; } // 若沒資料 
+      else if(formData[field] && !newErrors[field]){ delete newErrors[field]; } // 若有資料，且格式正確
+    }
+    // 如果有錯誤訊息，則設置錯誤並不提交表單
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      toast({
+        title: '輸入格式錯誤',
+        status: 'error',
+        isClosable: true,
+      })
+      return;
+    }
+    else{
+      // 若無錯誤，則進行表單送出前的處理
+      // 在此處進行密碼加密
+      const encryptedPassword = encrypt( formData.password ).toString();
+      // 將加密後的密碼發送到後端或執行其他操作
+      // 取得userID
+      const userID = getCookie('userID');
+      // 發起異步請求註冊用戶
+      try {
+        const response = await fetch('/api/user/update', {
+            method: 'POST',
+            body: JSON.stringify({userID:userID, ...formData, password:encryptedPassword}),
+            headers:{
+                'Content-Type': 'application/json',
+            },
+        });
 
-			if (response.ok){
-					toast({
-							title: '修改成功',
-							status: 'success',
-							isClosable: true,
-						})
-					onClose();
-			}
-			else if(response.status === 400){
-				toast({
-					title: '該電子郵件地址已被使用。',
-					status: 'error',
-					isClosable: true,
-				})
-			}
-			else{
-					toast({
-							title: '修改失敗。請再試一次!',
-							status: 'error',
-							isClosable: true,
-						})
-					onClose();
-			}
-		}
-		catch(error){
-				toast({
-						title: '修改失敗',
-						status: 'error',
-						isClosable: true,
-					})
-				onClose();
-				console.error('用戶修改錯誤:', error);
-		}
+        if (response.ok){
+            toast({
+                title: '更新成功',
+                status: 'success',
+                isClosable: true,
+              })
+            onClose();
+        }
+        else if(response.status === 400){
+          toast({
+            title: '該電子郵件地址已被使用。',
+            status: 'error',
+            isClosable: true,
+          })
+        }
+        else{
+            toast({
+                title: '更新失敗。請再試一次!',
+                status: 'error',
+                isClosable: true,
+              })
+            onClose();
+        }
+      }
+      catch(error){
+          toast({
+              title: '更新失敗',
+              status: 'error',
+              isClosable: true,
+            })
+          onClose();
+          console.error('會員更新錯誤:', error);
+      }
+    }
   };
 
 	const initialRef = React.useRef(null)
@@ -211,17 +277,19 @@ function EditUserInfo({userData}){
           <ModalBody pb={6}>
             <FormControl id='username'>
               <FormLabel>姓名</FormLabel>
-              <Input type="text" name="username" value={formData.username} onChange={handleFormChange} ref={initialRef} placeholder='輸入姓名...' />
+              <Input type="text" name="username" value={formData.username} onChange={handleInputChange} ref={initialRef} placeholder='輸入姓名...' />
+              {errors.username && <div style={errorStyle}>{errors.username}</div>}
             </FormControl>
 						<FormControl id='Email' mt={4}>
               <FormLabel>Email</FormLabel>
-              <Input type="text" name="email" value={formData.email} onChange={handleFormChange} placeholder='輸入Email...' />
+              <Input type="text" name="email" value={formData.email} onChange={handleInputChange} placeholder='輸入Email...' />
+              {errors.email && <div style={errorStyle}>{errors.email}</div>}
             </FormControl>
             <FormControl id='password' mt={4}>
               <FormLabel>密碼</FormLabel>
 							<InputGroup>
 								<Input type={showPassword ? 'text' : 'password'} 
-									name="password" value={formData.password} onChange={handleFormChange} placeholder='輸入新密碼...' />
+									name="password" value={formData.password} onChange={handleInputChange} placeholder='輸入新密碼...' />
                 <InputRightElement h={'full'}>
                   <Button
                     variant={'ghost'}
@@ -230,15 +298,17 @@ function EditUserInfo({userData}){
                   </Button>
                 </InputRightElement>
               </InputGroup>
-              
+              {errors.password && <div style={errorStyle}>{errors.password}</div>}
             </FormControl>
 						<FormControl id='phone' mt={4}>
               <FormLabel>電話</FormLabel>
-              <Input type="tel"  name="phone" value={formData.phone} onChange={handleFormChange} placeholder='輸入電話...' />
+              <Input type="tel"  name="phone" value={formData.phone} onChange={handleInputChange} placeholder='輸入電話...' />
+              {errors.phone && <div style={errorStyle}>{errors.phone}</div>}
             </FormControl>
 						<FormControl id='address' mt={4}>
               <FormLabel>地址</FormLabel>
-              <Input type="text" name="address" value={formData.address} onChange={handleFormChange} placeholder='輸入地址...' />
+              <Input type="text" name="address" value={formData.address} onChange={handleInputChange} placeholder='輸入地址...' />
+              {errors.address && <div style={errorStyle}>{errors.address}</div>}
             </FormControl>
           </ModalBody>
 

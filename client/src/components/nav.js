@@ -275,7 +275,7 @@ const NAV_ITEMS = [
     ],
   },
   {
-    label: '用戶中心',
+    label: '會員中心',
     href: '/memberCenter',
   },
   {

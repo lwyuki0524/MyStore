@@ -11,6 +11,7 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false) // 是否顯示密碼的狀態設置
   const [formData, setFormData] = useState({ email: '', password: '' }); // 表單資料狀態
   const [loginStatue, setLoginStatue] = useState(null); //  登入狀態
+  const [errors, setErrors] = useState({}); // 格式錯誤狀態
   
   // 訊息提醒
   const toast = useToast()
@@ -21,42 +22,89 @@ export default function Login() {
       navigate('/signup', { replace: true });
   };
 
+  /* 檢查用戶輸入格式 */
+  // 使用正則表達式來檢查格式
+  const validateEmail = (email) => { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email); }
+  const validatePassword = (password) => {
+    return /^(?=.*[!@#$%^&*])(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,}$/.test(password);
+  } // 密碼至少需要6個字符，包括一個特殊符號、一個大寫字母、一個小寫字母
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    const newFormData = { ...formData };
+    let newErrors = { ...errors };
+    if (name === 'email') {
+      if (!validateEmail(value)) { newErrors.email = 'Email格式不正確'; }
+      else { delete newErrors.email; }
+    }
+    if (name === 'password') {
+      if (!validatePassword(value)) { newErrors.password = '密碼必須至少包含一個特殊符號、一個大寫字母、一個小寫字母，且至少6個字符'; }
+      else { delete newErrors.password; }
+    }
+    newFormData[name] = value;
+    setFormData(newFormData);
+    setErrors(newErrors);
+  }
+  // 設定錯誤訊息樣式
+  const errorStyle = {
+    color: 'red',
+    fontSize:'7px',
+    padding: '2px',
+  };
   // 點擊登入後，進行登入api處理，並設置登入狀態loginStatue
   const handleLogin = async () => {
-    // 發起異步請求登入
-    try {
-      const response = await fetch('/api/user/login', {
-        method: 'POST',
-        body: JSON.stringify(formData),
-        headers:{
-            'Content-Type': 'application/json',
-        },
-      });
-      if (response.ok){
-        toast({
-          title: '用戶登入成功',
-          status: 'success',
-          isClosable: true,
-        })
-        setLoginStatue(true);
-      }
-      else{
-        toast({
-          title: '帳密錯誤，登入失敗。請再試一次!',
-          status: 'error',
-          isClosable: true,
-        })
-        setLoginStatue(false);
-      }
+    // 檢查必填字段是否為空
+    const requiredFields = ['email', 'password'];
+    let newErrors = { ...errors };
+    for (const field of requiredFields) {
+      if (!formData[field]) { newErrors[field] = '此字段為必填項'; } // 若沒資料 
+      else if(formData[field] && !newErrors[field]){ delete newErrors[field]; } // 若有資料，且格式正確
     }
-    catch(error){
-        toast({
-          title: '用戶登入錯誤',
-          status: 'error',
-          isClosable: true,
-        })
-        console.error('用戶登入錯誤:', error);
-        setLoginStatue(false);
+    // 如果有錯誤訊息，則設置錯誤並不提交表單
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      toast({
+        title: '輸入格式錯誤',
+        status: 'error',
+        isClosable: true,
+      })
+      return;
+    }
+    else{
+      // 若無錯誤， 則發起異步請求登入
+      try {
+        const response = await fetch('/api/user/login', {
+          method: 'POST',
+          body: JSON.stringify(formData),
+          headers:{
+              'Content-Type': 'application/json',
+          },
+        });
+        if (response.ok){
+          toast({
+            title: '用戶登入成功',
+            status: 'success',
+            isClosable: true,
+          })
+          setLoginStatue(true);
+        }
+        else{
+          toast({
+            title: '帳密錯誤，登入失敗。請再試一次!',
+            status: 'error',
+            isClosable: true,
+          })
+          setLoginStatue(false);
+        }
+      }
+      catch(error){
+          toast({
+            title: '用戶登入錯誤',
+            status: 'error',
+            isClosable: true,
+          })
+          console.error('用戶登入錯誤:', error);
+          setLoginStatue(false);
+      }
     }
   }
 
@@ -93,12 +141,13 @@ export default function Login() {
           <Stack spacing={4}>
             <FormControl id="email" isRequired>
               <FormLabel>Email</FormLabel>
-              <Input type="email" onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
+              <Input type="email" name='email' onChange={handleInputChange} />
+              {errors.email && <div style={errorStyle}>{errors.email}</div>}
             </FormControl>
             <FormControl id="password" isRequired>
               <FormLabel>密碼</FormLabel>
               <InputGroup>
-                <Input type={showPassword ? 'text' : 'password'} onChange={(e) => setFormData({ ...formData, password: e.target.value })} />
+                <Input type={showPassword ? 'text' : 'password'} name='password' onChange={handleInputChange} />
                 <InputRightElement h={'full'}>
                   <Button
                     variant={'ghost'}
@@ -107,6 +156,7 @@ export default function Login() {
                   </Button>
                 </InputRightElement>
               </InputGroup>
+              {errors.password && <div style={errorStyle}>{errors.password}</div>}
             </FormControl>
             <Stack spacing={10} pt={2}>
               <Button
