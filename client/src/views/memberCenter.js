@@ -27,7 +27,9 @@ export default function MemberCenter() {
                 status: 'warning',
                 isClosable: true,
               })
-            navigate('/login', { replace: true }); 
+            setTimeout(() => {
+              navigate('/login', { replace: true })
+            }, 100);
         }
         else{
             // 發起請求以獲取用戶數據
@@ -38,14 +40,14 @@ export default function MemberCenter() {
                 },
                 body: JSON.stringify({ userID: userID }), // 將 userID 發送到後端
             })
-                .then((response) => response.json())
-                .then((data) => {
-                // 在請求成功後，更新用戶數據
-                setUserData(data);
-                })
-                .catch((error) => {
-                console.error('Error fetching user data:', error);
-                });
+            .then((response) => response.json())
+            .then((data) => {
+              // 在請求成功後，更新用戶數據
+              setUserData(data);
+            })
+            .catch((error) => {
+              console.error('Error fetching user data:', error);
+            });
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
       }, [userData]);
@@ -94,8 +96,8 @@ export default function MemberCenter() {
                         </CardFooter>
                     </Card>
                 ) : (
-                  <Box align="center">
-                    <p>請登入...</p>
+                  <Box textAlign="center">
+                    <p>無權限</p>
                   </Box>
                 )}
             </Box>

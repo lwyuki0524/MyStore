@@ -65,6 +65,8 @@ export default function SignUp() {
     fontSize:'7px',
     padding: '2px',
   };
+
+  
   // 點擊註冊後，進行註冊的api處理，並設置註冊狀態signUpStatus
   const handleSignUp = async (e) => {
     e.preventDefault();

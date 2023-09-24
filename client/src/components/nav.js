@@ -7,10 +7,12 @@ import {getCookie, deleteAllCookies} from '../util/utils';
 export default function Nav() {
   // 取得cookie
   const userID = getCookie('userID');
+  const manager = getCookie('manager');
 
   const { isOpen, onToggle } = useDisclosure()
   const location = useLocation(); // 取得目前路徑
   const navigate = useNavigate(); // 導航至其他頁面
+
   // 點擊註冊按鈕，導航到註冊頁面
   const handleRegisterClick = () => {
     if (location.pathname==='/login'){
@@ -20,6 +22,7 @@ export default function Nav() {
       navigate('/signup');
     }
   };
+
   // 點擊登入按紐，導航到登入頁面
   const handleLoginClick = () => {
     if (location.pathname==='/signup'){
@@ -35,9 +38,9 @@ export default function Nav() {
     deleteAllCookies();
     navigate('/', { replace: true });
   }
-  
+
   return (
-    <Box>
+    <Box >
       <Flex
         bg={useColorModeValue('white', 'gray.800')}
         color={useColorModeValue('gray.600', 'white')}
@@ -70,14 +73,14 @@ export default function Nav() {
           </Text>
 
           <Flex display={{ base: 'none', md: 'flex' }} ml={10}>
-            <DesktopNav />
+            <DesktopNav cookies_u={userID} cookies_m={manager} />
           </Flex>
         </Flex>
 
         <div>
         { 
-        // 若cookie取得了userID，顯示登出按紐；否則顯示登入和註冊按紐。 
-        userID ? (
+        // 若cookie取得了userID 或 manager，顯示登出按紐；否則顯示登入和註冊按紐。 
+        (userID || manager ) ? (
           <Box>
             <Button as={'a'} fontSize={'sm'} fontWeight={400} variant={'link'} onClick={handleLogoutClick} >
               Logout
@@ -117,14 +120,28 @@ export default function Nav() {
   )
 }
 
-const DesktopNav = () => {
+const DesktopNav = (cookies) => {
   const linkColor = useColorModeValue('gray.600', 'gray.200')
   const linkHoverColor = useColorModeValue('gray.800', 'white')
   const popoverContentBgColor = useColorModeValue('white', 'gray.800')
+  
+  const handleNavClick = () => {
+    // 從nav點擊後台時，將page設定為預設值
+    sessionStorage.setItem('page', '#');
+  }
 
   return (
     <Stack direction={'row'} spacing={4}>
-      {NAV_ITEMS.map((navItem) => (
+      {
+        NAV_ITEMS.map((navItem) => (
+        ( ( 
+            // 一般使用者(未登入狀態下)
+            (!navItem.identity) || 
+            // 登入的管理員 => 要顯示管理後台
+            (cookies.cookies_m && (navItem.identity !== 'user')) || 
+            // 登入後的用戶 => 要顯示會員中心
+            (cookies.cookies_u && (navItem.identity!=='manager')) 
+          ) &&
         <Box key={navItem.label}>
           <Popover trigger={'hover'} placement={'bottom-start'}>
             <PopoverTrigger>
@@ -132,6 +149,7 @@ const DesktopNav = () => {
                 as="a"
                 p={2}
                 href={navItem.href ?? '#'}
+                onClick={handleNavClick}
                 fontSize={'sm'}
                 fontWeight={500}
                 color={linkColor}
@@ -160,6 +178,7 @@ const DesktopNav = () => {
             )}
           </Popover>
         </Box>
+        )
       ))}
     </Stack>
   )
@@ -277,9 +296,11 @@ const NAV_ITEMS = [
   {
     label: '會員中心',
     href: '/memberCenter',
+    identity:'user'
   },
   {
     label: '管理後台',
-    href: '#',
+    href: '/backStage',
+    identity:'manager'
   },
 ]

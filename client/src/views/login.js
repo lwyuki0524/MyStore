@@ -81,7 +81,7 @@ export default function Login() {
         });
         if (response.ok){
           toast({
-            title: '用戶登入成功',
+            title: '登入成功',
             status: 'success',
             isClosable: true,
           })
@@ -112,9 +112,13 @@ export default function Login() {
   useEffect(() => {
     // 取得cookie
     const userID = getCookie('userID');
+    const manager = getCookie('manager');
     if (userID) {
-        // 導航至會員中心
-        navigate('/memberCenter', { replace: true }); 
+      // 導航至會員中心
+      navigate('/memberCenter', { replace: true }); 
+    }
+    else if (manager){
+      navigate('/backStage', { replace: true })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loginStatue]);

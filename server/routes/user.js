@@ -7,11 +7,11 @@ router.get('/',(req,res)=>{
     res.send('正在使用router')
 })
 
-router.get('/index', UserController.index)
-router.post('/show', UserController.show)
-router.post('/save', UserController.store)
-router.post('/update', UserController.update)
-router.post('/delete', UserController.destory)
+router.get('/index', UserController.showAllUser)
+router.post('/show', UserController.showUser)
+router.post('/save', UserController.addUser)
+router.post('/update', UserController.updateUser)
+router.post('/delete', UserController.deleteUser)
 router.post('/login', UserController.login)
 
 module.exports = router

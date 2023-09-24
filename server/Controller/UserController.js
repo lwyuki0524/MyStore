@@ -1,8 +1,8 @@
-const User = require("../models/User")
+const User = require("../Models/User")
 const CryptoJS = require('crypto-js'); // 引入 CryptoJS
 
 // 新增
-const store = async(req, res) => {
+const addUser = async(req, res) => {
     console.log(req.body)
 
     try{
@@ -38,17 +38,34 @@ const store = async(req, res) => {
 
 // 查詢
 // 查詢所有用戶資料
-const index = async(req, res) => {
+const showAllUser = async(req, res) => {
+    // 定義分頁參數
+    const pageSize = req.query.pageSize || 5; // 每頁顯示的文件數量
+    const currentPage = req.query.currentPage || 1; // 目前頁碼
+    // 計算skip值
+    const skip = (currentPage - 1) * pageSize;
+
     try{
-        const allUserdata = await User.find()
-        res.status(200).json(allUserdata)
+        /* 總頁數計算*/
+        // 總資料條目數
+        const totalUserCount = await User.countDocuments();
+        // 計算總頁數
+        const totalPages = Math.ceil(totalUserCount / pageSize);
+
+        /* 搜尋用戶 */
+        const allUserdata = await User.find().skip(skip).limit(pageSize);
+        res.status(200).json({
+            totalItems : totalUserCount,
+            totalPageCount : totalPages,
+            data : allUserdata
+        })
     }
     catch(error){
         res.send(`Some error occured => ${error}`)
     }
 }
 // 查詢一個用戶資料
-const show = async(req, res) => {
+const showUser = async(req, res) => {
     // 從客戶端得到userID
     let userID = req.body.userID
     try{
@@ -62,7 +79,7 @@ const show = async(req, res) => {
 }
 
 // 修改
-const update = async(req, res) => {
+const updateUser = async(req, res) => {
     let userID = req.body.userID
     try{
         // 目前使用者的資料
@@ -99,7 +116,7 @@ const update = async(req, res) => {
 }
 
 // 刪除
-const destory = async(req, res) => {
+const deleteUser = async(req, res) => {
     let userID = req.body.userID
     try{
         const result = await User.findByIdAndRemove(userID)
@@ -112,33 +129,44 @@ const destory = async(req, res) => {
 
 // 登入
 const login = async(req, res) => {
-
-    try{
-        const user  = await User.findOne({ email: req.body.email });
-        
-        if (user){
-            const secretKey = process.env.SECRETKEY;
-            const iv = CryptoJS.enc.Utf8.parse(process.env.IV);
-            const decrypted_pwd = CryptoJS.AES.decrypt( user.password , secretKey, {iv}).toString(CryptoJS.enc.Utf8);
-            if (decrypted_pwd==req.body.password) {
-                // 設置cookie
-                res.cookie('userID', user._id.toString());
-                // 用戶存在，可以登入
-                res.status(200).json({ message: 'Login successful', user });
-              } else {
-                // 密碼錯誤，登入失敗
-                res.status(401).json({ message: 'Login failed' });
-              }
-        }
-        else {
-            // 用戶不存在，拒絕登入
-            res.status(401).json({ message: 'Login failed' });
-        }
-        
+    
+    // 管理員
+    let manager_email = req.body.email
+    let manager_pwd = req.body.password
+    if( (manager_email == process.env.MANAGER_EMAIL) && (manager_pwd == process.env.MANAGER_PASSWORD) ){
+        // 設置cookie
+        res.cookie('manager', manager_email);
+        // 管理員存在，可以登入
+        res.status(200).json({ message: 'Login successful' });;
     }
-    catch(error){
-        res.send(`Some error occured => ${error}`)
+    else{
+        // 用戶
+        try{
+            const user  = await User.findOne({ email: req.body.email });
+            if (user){
+                const secretKey = process.env.SECRETKEY;
+                const iv = CryptoJS.enc.Utf8.parse(process.env.IV);
+                const decrypted_pwd = CryptoJS.AES.decrypt( user.password , secretKey, {iv}).toString(CryptoJS.enc.Utf8);
+                if (decrypted_pwd==req.body.password) {
+                    // 設置cookie
+                    res.cookie('userID', user._id.toString());
+                    // 用戶存在，可以登入
+                    res.status(200).json({ message: 'Login successful', user });
+                } else {
+                    // 密碼錯誤，登入失敗
+                    res.status(401).json({ message: 'Login failed' });
+                }
+            }
+            else {
+                // 用戶不存在，拒絕登入
+                res.status(401).json({ message: 'Login failed' });
+            }
+            
+        }
+        catch(error){
+            res.send(`Some error occured => ${error}`)
+        }
     }
 }
 
-module.exports = {store, show, index, update, destory, login}
+module.exports = {addUser, showAllUser, showUser, updateUser, deleteUser, login}
